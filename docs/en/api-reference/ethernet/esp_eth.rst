@@ -18,6 +18,7 @@ Headers include a default configuration structure. These default configurations 
   * :component_file:`ethernet/include/eth_phy/phy_tlk110.h`
   * :component_file:`ethernet/include/eth_phy/phy_lan8720.h`
   * :component_file:`ethernet/include/eth_phy/phy_ip101.h`
+  * :component_file:`ethernet/include/eth_phy/phy_lan8742.h`
 
 PHY Configuration Constants
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -25,6 +26,7 @@ PHY Configuration Constants
 .. doxygenvariable:: phy_tlk110_default_ethernet_config
 .. doxygenvariable:: phy_lan8720_default_ethernet_config
 .. doxygenvariable:: phy_ip101_default_ethernet_config
+.. doxygenvariable:: phy_lan8742_default_ethernet_config
 
 
 API Reference - Ethernet
@@ -51,4 +53,9 @@ API Reference - PHY IP101
 -------------------------
 
 .. include:: /_build/inc/phy_ip101.inc
+API Reference - PHY LAN8742
+---------------------------
+
+.. include:: /_build/inc/phy_lan8742.inc
+
 

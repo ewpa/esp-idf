@@ -20,6 +20,11 @@ menu "Example Configuration"
             help
                 LAN8720 is a small footprint RMII 10/100 Ethernet Transceiver with HP Auto-MDIX Support.
                 Goto https://www.microchip.com/LAN8720A for more information about it.
+        config PHY_LAN8742
+            bool "LAN8742"
+            help
+                LAN8742 is a small footprint RMII 10/100 Ethernet Transceiver with Wake-On-LAN and HP Auto-MDIX Support.
+                Goto https://www.microchip.com/LAN8742A for more information about it.
     endchoice
 
     config PHY_ADDRESS

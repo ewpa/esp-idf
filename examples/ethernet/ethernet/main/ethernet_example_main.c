@@ -29,6 +29,9 @@
 #elif CONFIG_PHY_IP101
 #include "eth_phy/phy_ip101.h"
 #define DEFAULT_ETHERNET_PHY_CONFIG phy_ip101_default_ethernet_config
+#elif CONFIG_PHY_LAN8742
+#include "eth_phy/phy_lan8742.h"
+#define DEFAULT_ETHERNET_PHY_CONFIG phy_lan8742_default_ethernet_config
 #endif
 
 static const char *TAG = "eth_example";
