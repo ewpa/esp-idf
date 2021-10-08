@@ -243,6 +243,17 @@ esp_eth_phy_t *esp_eth_phy_new_rtl8201(const eth_phy_config_t *config);
 esp_eth_phy_t *esp_eth_phy_new_lan8720(const eth_phy_config_t *config);
 
 /**
+* @brief Create a PHY instance of LAN8742
+*
+* @param[in] config: configuration of PHY
+*
+* @return
+*      - instance: create PHY instance successfully
+*      - NULL: create PHY instance failed because some error occurred
+*/
+esp_eth_phy_t *esp_eth_phy_new_lan8742(const eth_phy_config_t *config);
+
+/**
 * @brief Create a PHY instance of DP83848
 *
 * @param[in] config: configuration of PHY

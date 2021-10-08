@@ -24,6 +24,7 @@ if(CONFIG_ETH_ENABLED)
                          "src/esp_eth_phy_ip101.c"
                          "src/esp_eth_phy_ksz80xx.c"
                          "src/esp_eth_phy_lan8720.c"
+                         "src/esp_eth_phy_lan8742.c"
                          "src/esp_eth_phy_rtl8201.c")
     endif()
 
