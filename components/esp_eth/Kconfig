@@ -12,6 +12,12 @@ menu "Ethernet"
         help
             ESP32 integrates a 10/100M Ethernet MAC controller.
 
+    config ETH_WAKE_ON_LAN
+        bool "Support Ethernet WoL"
+        default n
+        help
+            Enable Ethernet Wake-on-LAN functionality if present.
+
     if ETH_USE_ESP32_EMAC
         choice ETH_PHY_INTERFACE
             prompt "PHY interface"
