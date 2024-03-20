@@ -74,7 +74,6 @@ static void got_ip_event_handler(void *arg, esp_event_base_t event_base,
 {
     ip_event_got_ip_t *event = (ip_event_got_ip_t *) event_data;
     const esp_netif_ip_info_t *ip_info = &event->ip_info;
-    esp_netif_t *netif = event->esp_netif;
 
     ESP_LOGI(TAG, "Ethernet Got IP Address");
     ESP_LOGI(TAG, "~~~~~~~~~~~");
@@ -82,7 +81,10 @@ static void got_ip_event_handler(void *arg, esp_event_base_t event_base,
     ESP_LOGI(TAG, "ETHMASK:" IPSTR, IP2STR(&ip_info->netmask));
     ESP_LOGI(TAG, "ETHGW:" IPSTR, IP2STR(&ip_info->gw));
     ESP_LOGI(TAG, "~~~~~~~~~~~");
+#ifdef CONFIG_LWIP_IPV6
+    esp_netif_t *netif = event->esp_netif;
     esp_netif_create_ip6_linklocal(netif);
+#endif
 }
 
 /** Event handler for IP_EVENT_GOT_IP6 */
