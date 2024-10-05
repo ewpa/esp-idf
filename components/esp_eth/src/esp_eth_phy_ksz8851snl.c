@@ -89,6 +89,9 @@ static esp_err_t phy_ksz8851_reset(esp_eth_phy_t *phy)
     // NOTE(v.chistyakov): PHY_RESET bit is self-clearing
     ESP_GOTO_ON_ERROR(eth->phy_reg_write(eth, ksz8851->addr, KSZ8851_PHYRR, PHYRR_PHY_RESET), err, TAG, "PHYRR write failed");
     vTaskDelay(pdMS_TO_TICKS(ksz8851->reset_timeout_ms));
+#ifdef CONFIG_ETH_WAKE_ON_LAN
+    ESP_GOTO_ON_ERROR(eth->phy_reg_write(eth, ksz8851->addr, KSZ8851_PMECR, PMECR_MAGIC_PACKET), err, TAG, "PMECR write failed"); // Re-instate WoL event.
+#endif
     return ESP_OK;
 err:
     return ret;
@@ -116,10 +119,20 @@ static esp_err_t phy_ksz8851_pwrctl(esp_eth_phy_t *phy, bool enable)
     esp_eth_mediator_t *eth   = ksz8851->eth;
     if (enable) {
         ESP_LOGD(TAG, "normal mode");
-        ESP_GOTO_ON_ERROR(eth->phy_reg_write(eth, ksz8851->addr, KSZ8851_PMECR, PMECR_PME_MODE_POWER_SAVING), err, TAG, "PMECR write failed");
+        uint16_t pmecr = PMECR_PME_MODE_POWER_SAVING;
+#ifdef CONFIG_ETH_WAKE_ON_LAN
+        pmecr |= PMECR_WAKEUP_MAGIC_PACKET; // Clear any pending WoL event.
+        pmecr |= PMECR_MAGIC_PACKET; // Listen for magic packet and raise WoL event on PME line.
+#endif
+        ESP_GOTO_ON_ERROR(eth->phy_reg_write(eth, ksz8851->addr, KSZ8851_PMECR, pmecr), err, TAG, "PMECR write failed");
     } else {
         ESP_LOGD(TAG, "power saving mode");
-        ESP_GOTO_ON_ERROR(eth->phy_reg_write(eth, ksz8851->addr, KSZ8851_PMECR, PMECR_PME_MODE_NORMAL), err, TAG, "PMECR write failed");
+        uint16_t pmecr = PMECR_PME_MODE_NORMAL;
+#ifdef CONFIG_ETH_WAKE_ON_LAN
+        pmecr |= PMECR_WAKEUP_MAGIC_PACKET; // Clear any pending WoL event.
+        pmecr |= PMECR_MAGIC_PACKET; // Listen for magic packet and raise WoL event on PME line.
+#endif
+        ESP_GOTO_ON_ERROR(eth->phy_reg_write(eth, ksz8851->addr, KSZ8851_PMECR, pmecr), err, TAG, "PMECR write failed");
     }
     return ESP_OK;
 err:
