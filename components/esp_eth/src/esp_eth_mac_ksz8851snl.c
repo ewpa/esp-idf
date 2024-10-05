@@ -316,6 +316,12 @@ static esp_err_t init_set_defaults(emac_ksz8851snl_t *emac)
     ESP_GOTO_ON_ERROR(ksz8851_set_bits(emac, KSZ8851_ISR, ISR_ALL), err, TAG, "ISR write failed");
     ESP_GOTO_ON_ERROR(ksz8851_set_bits(emac, KSZ8851_IER, IER_TXIE | IER_RXIE | IER_LDIE | IER_SPIBEIE | IER_RXOIE), err, TAG, "IER write failed");
     ESP_GOTO_ON_ERROR(ksz8851_set_bits(emac, KSZ8851_TXQCR, TXQCR_AETFE), err, TAG, "TXQCR write failed");
+#ifdef CONFIG_ETH_WAKE_ON_LAN
+    // Listen for magic packet and raise WoL event on PME line.
+    ESP_GOTO_ON_ERROR(ksz8851_set_bits(emac, KSZ8851_IER, IER_RXMPDIE), err, TAG, "IER WoL write failed");
+    ESP_GOTO_ON_ERROR(ksz8851_set_bits(emac, KSZ8851_WFCR, WFCR_MPRXE), err, TAG, "WFCR WoL write failed");
+    ESP_GOTO_ON_ERROR(ksz8851_set_bits(emac, KSZ8851_RXCR1, RXCR1_RXE), err, TAG, "RXCR1 WoL write failed");
+#endif
     return ESP_OK;
 err:
     return ret;
