@@ -349,21 +349,21 @@ err:
 
 #ifdef CONFIG_ETH_WAKE_ON_LAN
 // Wake-On-LAN magic packet enable function.
-static esp_err_t phy_lan874x_wol_magic_begin(phy_lan87xx_t *lan87xx)
+static esp_err_t phy_lan874x_wol_magic_begin(phy_802_3_t *phy_802_3)
 {
     esp_err_t ret = ESP_OK;
-    esp_eth_mediator_t *eth = lan87xx->eth;
+    esp_eth_mediator_t *eth = phy_802_3->eth;
     uint8_t mac[6];
-    esp_read_mac(mac, ESP_MAC_ETH);
+    ESP_GOTO_ON_ERROR(phy_802_3->parent.get_addr(&phy_802_3->parent, (uint32_t*)mac), err, TAG, "EMAC addr read failed");
     // Tell the PHY which MAC pattern to watch for.
-    esp_eth_phy_802_3_write_mmd_data(lan87xx.phy_802_3, MMD_DEVAD_PCS, PCS_MAC_RX_ADDRA_REG, (mac[5]<<8)|mac[4]);
-    esp_eth_phy_802_3_write_mmd_data(lan87xx.phy_802_3, MMD_DEVAD_PCS, PCS_MAC_RX_ADDRB_REG, (mac[3]<<8)|mac[2]);
-    esp_eth_phy_802_3_write_mmd_data(lan87xx.phy_802_3, MMD_DEVAD_PCS, PCS_MAC_RX_ADDRC_REG, (mac[1]<<8)|mac[0]);
+    esp_eth_phy_802_3_write_mmd_data(phy_802_3, MMD_DEVAD_PCS, PCS_MAC_RX_ADDRA_REG, (mac[5]<<8)|mac[4]);
+    esp_eth_phy_802_3_write_mmd_data(phy_802_3, MMD_DEVAD_PCS, PCS_MAC_RX_ADDRB_REG, (mac[3]<<8)|mac[2]);
+    esp_eth_phy_802_3_write_mmd_data(phy_802_3, MMD_DEVAD_PCS, PCS_MAC_RX_ADDRC_REG, (mac[1]<<8)|mac[0]);
     // Configure WoL.
-    esp_eth_phy_802_3_write_mmd_data(lan87xx.phy_802_3, MMD_DEVAD_PCS, PCS_WUCSR, WOL_CONFIGURED|MPEN);
+    esp_eth_phy_802_3_write_mmd_data(phy_802_3, MMD_DEVAD_PCS, PCS_WUCSR, WOL_CONFIGURED|MPEN);
     // Enable the interrupt.
     imr_reg_t imr = {.wake_on_lan = 1};
-    ESP_GOTO_ON_ERROR(eth->phy_reg_write(eth, lan87xx->addr, ETH_PHY_IMR_REG_ADDR, imr.val), err, TAG, "write IMR failed");
+    ESP_GOTO_ON_ERROR(eth->phy_reg_write(eth, phy_802_3->addr, ETH_PHY_IMR_REG_ADDR, imr.val), err, TAG, "write IMR failed");
 err:
     return ret;
 }
@@ -372,21 +372,21 @@ err:
 static esp_err_t phy_lan874x_wol_magic_end(esp_eth_phy_t *phy)
 {
     esp_err_t ret = ESP_OK;
-    phy_lan87xx_t *lan87xx = __containerof(phy, phy_lan87xx_t, parent);
-    esp_eth_mediator_t *eth = lan87xx->eth;
+    phy_802_3_t *phy_802_3 = esp_eth_phy_into_phy_802_3(phy);
+    esp_eth_mediator_t *eth = phy_802_3->eth;
 
     // Deconfigure WoL.
-    esp_eth_phy_802_3_write_mmd_data(lan87xx.phy_802_3, MMD_DEVAD_PCS, PCS_WUCSR, 0x00);
+    esp_eth_phy_802_3_write_mmd_data(phy_802_3, MMD_DEVAD_PCS, PCS_WUCSR, 0x00);
     // Read ISFR register 29 to clear any asserted WoL event on nINT.
     imr_reg_t imr = {.wake_on_lan = 1};
-    ESP_GOTO_ON_ERROR(eth->phy_reg_write(eth, lan87xx->addr, ETH_PHY_IMR_REG_ADDR, imr.val), err, TAG, "write IMR failed");
+    ESP_GOTO_ON_ERROR(eth->phy_reg_write(eth, phy_802_3->addr, ETH_PHY_IMR_REG_ADDR, imr.val), err, TAG, "write IMR failed");
     isfr_reg_t isfr;
-    ESP_GOTO_ON_ERROR(eth->phy_reg_read(eth, lan87xx->addr, ETH_PHY_ISR_REG_ADDR, &(isfr.val)), err, TAG, "read ISFR failed");
+    ESP_GOTO_ON_ERROR(eth->phy_reg_read(eth, phy_802_3->addr, ETH_PHY_ISR_REG_ADDR, &(isfr.val)), err, TAG, "read ISFR failed");
     // Mask interrupts.
     imr.val = 0;
-    ESP_GOTO_ON_ERROR(eth->phy_reg_write(eth, lan87xx->addr, ETH_PHY_IMR_REG_ADDR, imr.val), err, TAG, "write IMR failed");
+    ESP_GOTO_ON_ERROR(eth->phy_reg_write(eth, phy_802_3->addr, ETH_PHY_IMR_REG_ADDR, imr.val), err, TAG, "write IMR failed");
     // Clear the magic packet received flag.
-    esp_eth_phy_802_3_write_mmd_data(lan87xx.phy_802_3, MMD_DEVAD_PCS, PCS_WUCSR, MPR);
+    esp_eth_phy_802_3_write_mmd_data(phy_802_3, MMD_DEVAD_PCS, PCS_WUCSR, MPR);
 err:
     return ret;
 }
@@ -417,7 +417,7 @@ static esp_err_t lan87xx_init(esp_eth_phy_t *phy)
     ESP_GOTO_ON_FALSE(supported_model, ESP_FAIL, err, TAG, "unsupported chip model");
 #ifdef CONFIG_ETH_WAKE_ON_LAN
     phy_lan874x_wol_magic_end(phy); // Clear any received interrupt.
-    phy_lan874x_wol_magic_begin(lan87xx);
+    phy_lan874x_wol_magic_begin(phy_802_3);
 #endif
     return ESP_OK;
 err:
