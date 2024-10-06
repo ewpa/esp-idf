@@ -10,6 +10,7 @@
 #include "freertos/task.h"
 #include "esp_log.h"
 #include "esp_check.h"
+#include "esp_mac.h"
 #include "esp_eth_phy_802_3.h"
 
 static const char *TAG = "lan87xx";
@@ -354,7 +355,7 @@ static esp_err_t phy_lan874x_wol_magic_begin(phy_802_3_t *phy_802_3)
     esp_err_t ret = ESP_OK;
     esp_eth_mediator_t *eth = phy_802_3->eth;
     uint8_t mac[6];
-    ESP_GOTO_ON_ERROR(phy_802_3->parent.get_addr(&phy_802_3->parent, (uint32_t*)mac), err, TAG, "EMAC addr read failed");
+    ESP_GOTO_ON_ERROR(esp_read_mac(mac, ESP_MAC_ETH), err, TAG, "EMAC addr read failed");
     // Tell the PHY which MAC pattern to watch for.
     esp_eth_phy_802_3_write_mmd_data(phy_802_3, MMD_DEVAD_PCS, PCS_MAC_RX_ADDRA_REG, (mac[5]<<8)|mac[4]);
     esp_eth_phy_802_3_write_mmd_data(phy_802_3, MMD_DEVAD_PCS, PCS_MAC_RX_ADDRB_REG, (mac[3]<<8)|mac[2]);
