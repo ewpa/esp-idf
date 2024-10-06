@@ -226,37 +226,6 @@ typedef struct {
     phy_802_3_t phy_802_3;
 } phy_lan87xx_t;
 
-// The device MMD registers adhere to the IEEE 802.3-2008 45.2 MDIO Interface
-// Registers specification.
-static esp_err_t esp_eth_mmd_write
-(phy_lan87xx_t *lan87xx, uint32_t devad, uint32_t index, uint32_t value)
-{
-    esp_err_t ret = ESP_OK;
-    esp_eth_mediator_t *eth = lan87xx->eth;
-    ESP_GOTO_ON_ERROR(eth->phy_reg_write(eth, lan87xx->addr, MMD_ACCESS_CTL_REG, MMD_FUNCTION_ADDR|devad), err, TAG, "write MMD1 failed");
-    ESP_GOTO_ON_ERROR(eth->phy_reg_write(eth, lan87xx->addr, MMD_ACCESS_ADDR_DATA_REG, index), err, TAG, "write MMD2 failed");
-    ESP_GOTO_ON_ERROR(eth->phy_reg_write(eth, lan87xx->addr, MMD_ACCESS_CTL_REG, MMD_FUNCTION_DATA|devad), err, TAG, "write MMD3 failed");
-    ESP_GOTO_ON_ERROR(eth->phy_reg_write(eth, lan87xx->addr, MMD_ACCESS_ADDR_DATA_REG, value), err, TAG, "write MMD4 failed");
-err:
-    return ret;
-}
-
-//uint16_t phy_lan8742_read_mmd_register
-static uint32_t esp_eth_mmd_read
-(phy_lan87xx_t *lan87xx, uint32_t devad, uint32_t index)
-{
-    esp_err_t ret = ESP_OK;
-    esp_eth_mediator_t *eth = lan87xx->eth;
-    ESP_GOTO_ON_ERROR(eth->phy_reg_write(eth, lan87xx->addr, MMD_ACCESS_CTL_REG, MMD_FUNCTION_ADDR|devad), err, TAG, "write MMD#1 failed");
-    ESP_GOTO_ON_ERROR(eth->phy_reg_write(eth, lan87xx->addr, MMD_ACCESS_ADDR_DATA_REG, index), err, TAG, "write MMD#2 failed");
-    ESP_GOTO_ON_ERROR(eth->phy_reg_write(eth, lan87xx->addr, MMD_ACCESS_CTL_REG, MMD_FUNCTION_DATA|devad), err, TAG, "write MMD#3 failed");
-    uint32_t val;
-    ESP_GOTO_ON_ERROR(eth->phy_reg_read(eth, lan87xx->addr, MMD_ACCESS_ADDR_DATA_REG, &val), err, TAG, "read MMD failed");
-    return val;
-err:
-    return ret;
-}
-
 static esp_err_t lan87xx_update_link_duplex_speed(phy_lan87xx_t *lan87xx)
 {
     esp_err_t ret = ESP_OK;
@@ -387,11 +356,11 @@ static esp_err_t phy_lan874x_wol_magic_begin(phy_lan87xx_t *lan87xx)
     uint8_t mac[6];
     esp_read_mac(mac, ESP_MAC_ETH);
     // Tell the PHY which MAC pattern to watch for.
-    esp_eth_mmd_write(lan87xx, MMD_DEVAD_PCS, PCS_MAC_RX_ADDRA_REG, (mac[5]<<8)|mac[4]);
-    esp_eth_mmd_write(lan87xx, MMD_DEVAD_PCS, PCS_MAC_RX_ADDRB_REG, (mac[3]<<8)|mac[2]);
-    esp_eth_mmd_write(lan87xx, MMD_DEVAD_PCS, PCS_MAC_RX_ADDRC_REG, (mac[1]<<8)|mac[0]);
+    esp_eth_phy_802_3_write_mmd_data(lan87xx.phy_802_3, MMD_DEVAD_PCS, PCS_MAC_RX_ADDRA_REG, (mac[5]<<8)|mac[4]);
+    esp_eth_phy_802_3_write_mmd_data(lan87xx.phy_802_3, MMD_DEVAD_PCS, PCS_MAC_RX_ADDRB_REG, (mac[3]<<8)|mac[2]);
+    esp_eth_phy_802_3_write_mmd_data(lan87xx.phy_802_3, MMD_DEVAD_PCS, PCS_MAC_RX_ADDRC_REG, (mac[1]<<8)|mac[0]);
     // Configure WoL.
-    esp_eth_mmd_write(lan87xx, MMD_DEVAD_PCS, PCS_WUCSR, WOL_CONFIGURED|MPEN);
+    esp_eth_phy_802_3_write_mmd_data(lan87xx.phy_802_3, MMD_DEVAD_PCS, PCS_WUCSR, WOL_CONFIGURED|MPEN);
     // Enable the interrupt.
     imr_reg_t imr = {.wake_on_lan = 1};
     ESP_GOTO_ON_ERROR(eth->phy_reg_write(eth, lan87xx->addr, ETH_PHY_IMR_REG_ADDR, imr.val), err, TAG, "write IMR failed");
@@ -407,7 +376,7 @@ static esp_err_t phy_lan874x_wol_magic_end(esp_eth_phy_t *phy)
     esp_eth_mediator_t *eth = lan87xx->eth;
 
     // Deconfigure WoL.
-    esp_eth_mmd_write(lan87xx, MMD_DEVAD_PCS, PCS_WUCSR, 0x00);
+    esp_eth_phy_802_3_write_mmd_data(lan87xx.phy_802_3, MMD_DEVAD_PCS, PCS_WUCSR, 0x00);
     // Read ISFR register 29 to clear any asserted WoL event on nINT.
     imr_reg_t imr = {.wake_on_lan = 1};
     ESP_GOTO_ON_ERROR(eth->phy_reg_write(eth, lan87xx->addr, ETH_PHY_IMR_REG_ADDR, imr.val), err, TAG, "write IMR failed");
@@ -417,7 +386,7 @@ static esp_err_t phy_lan874x_wol_magic_end(esp_eth_phy_t *phy)
     imr.val = 0;
     ESP_GOTO_ON_ERROR(eth->phy_reg_write(eth, lan87xx->addr, ETH_PHY_IMR_REG_ADDR, imr.val), err, TAG, "write IMR failed");
     // Clear the magic packet received flag.
-    esp_eth_mmd_write(lan87xx, MMD_DEVAD_PCS, PCS_WUCSR, MPR);
+    esp_eth_phy_802_3_write_mmd_data(lan87xx.phy_802_3, MMD_DEVAD_PCS, PCS_WUCSR, MPR);
 err:
     return ret;
 }
@@ -462,7 +431,7 @@ static esp_err_t lan87xx_deinit(esp_eth_phy_t *phy)
     phy_lan874x_wol_magic_end(phy);
 #endif
     /* Power off Ethernet PHY */
-    ESP_GOTO_ON_ERROR(lan87xx_pwrctl(phy, false), err, TAG, "power control failed");
+    ESP_GOTO_ON_ERROR(esp_eth_phy_802_3_pwrctl(esp_eth_phy_into_phy_802_3(phy), false), err, TAG, "power control failed");
     return ESP_OK;
 err:
     return ret;
@@ -479,6 +448,7 @@ esp_eth_phy_t *esp_eth_phy_new_lan87xx(const eth_phy_config_t *config)
     // redefine functions which need to be customized for sake of LAN87xx
     lan87xx->phy_802_3.parent.reset_hw = lan87xx_reset_hw;
     lan87xx->phy_802_3.parent.init = lan87xx_init;
+    lan87xx->phy_802_3.parent.deinit = lan87xx_deinit;
     lan87xx->phy_802_3.parent.get_link = lan87xx_get_link;
     lan87xx->phy_802_3.parent.autonego_ctrl = lan87xx_autonego_ctrl;
     lan87xx->phy_802_3.parent.loopback = lan87xx_loopback;
